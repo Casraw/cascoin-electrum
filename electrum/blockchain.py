@@ -312,6 +312,9 @@ class Blockchain(Logger):
             raise InvalidHeader("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
+        # Cascoin: Skip difficulty validation (uses custom DarkGravity Wave + LWMA algorithms)
+        if constants.net.NET_NAME == "cascoin":
+            return
         bits = cls.target_to_bits(target)
         if bits != header.get('bits'):
             raise InvalidHeader("bits mismatch: %s vs %s" % (bits, header.get('bits')))
@@ -533,6 +536,9 @@ class Blockchain(Logger):
         # compute target from chunk x, used in chunk x+1
         if constants.net.TESTNET:
             return 0
+        # Cascoin: Skip target calculation (uses custom difficulty algorithms)
+        if constants.net.NET_NAME == "cascoin":
+            return 0
         if index == -1:
             return MAX_TARGET
         if index < len(self.checkpoints):
@@ -596,6 +602,9 @@ class Blockchain(Logger):
         """work done by single header at given height"""
         chunk_idx = height // CHUNK_SIZE - 1
         target = self.get_target(chunk_idx)
+        # Cascoin: Skip calculation if target is 0 (custom difficulty algorithm)
+        if target == 0:
+            return 1
         work = ((2 ** 256 - target - 1) // (target + 1)) + 1
         return work
 
@@ -606,6 +615,9 @@ class Blockchain(Logger):
         if constants.net.TESTNET:
             # On testnet/regtest, difficulty works somewhat different.
             # It's out of scope to properly implement that.
+            return height
+        # Cascoin: Skip chainwork calculation (uses custom difficulty algorithms)
+        if constants.net.NET_NAME == "cascoin":
             return height
         last_retarget = height // CHUNK_SIZE * CHUNK_SIZE - 1
         cached_height = last_retarget

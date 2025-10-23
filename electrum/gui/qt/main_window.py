@@ -218,20 +218,26 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.console_tab = self.create_console_tab()
         self.notes_tab = self.create_notes_tab()
         self.contacts_tab = self.create_contacts_tab()
-        self.channels_tab = self.create_channels_tab()
+        # Cascoin: Lightning disabled – do not create Channels tab
+        self.channels_tab = self.create_channels_tab() if False else None
         tabs.addTab(self.create_history_tab(), read_QIcon("tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, read_QIcon("tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, read_QIcon("tab_receive.png"), _('Receive'))
 
         def add_optional_tab(tabs, tab, icon, description):
+            if tab is None:
+                return
             tab.tab_icon = icon
             tab.tab_description = description
             tab.tab_pos = len(tabs)
+            if getattr(tab, 'is_shown_cv', None) is None:
+                return
             if tab.is_shown_cv.get():
                 tabs.addTab(tab, icon, description.replace("&", ""))
 
         add_optional_tab(tabs, self.addresses_tab, read_QIcon("tab_addresses.png"), _("&Addresses"))
-        add_optional_tab(tabs, self.channels_tab, read_QIcon("lightning.png"), _("Channels"))
+        # Cascoin: do not add Channels tab
+        # add_optional_tab(tabs, self.channels_tab, read_QIcon("lightning.png"), _("Channels"))
         add_optional_tab(tabs, self.utxo_tab, read_QIcon("tab_coins.png"), _("Co&ins"))
         add_optional_tab(tabs, self.contacts_tab, read_QIcon("tab_contacts.png"), _("Con&tacts"))
         add_optional_tab(tabs, self.console_tab, read_QIcon("tab_console.png"), _("Con&sole"))
@@ -403,6 +409,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.address_list.refresh_all()
 
     def toggle_tab(self, tab):
+        if tab is None or getattr(tab, 'is_shown_cv', None) is None:
+            return
         show = not tab.is_shown_cv.get()
         tab.is_shown_cv.set(show)
         if show:
@@ -587,8 +595,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
     @profiler
     def load_wallet(self, wallet: Abstract_Wallet):
         self.update_recently_opened_menu()
-        if wallet.has_lightning():
-            util.trigger_callback('channels_updated', wallet)
+        # Cascoin: Lightning disabled
+        # if wallet.has_lightning():
+        #     util.trigger_callback('channels_updated', wallet)
         self.need_update.set()
         # Once GUI has been initialized check if we want to announce something since the callback has been called before the GUI was initialized
         # update menus
@@ -598,7 +607,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.update_console()
         self.receive_tab.do_clear()
         self.receive_tab.request_list.update()
-        self.channels_list.update()
+        # Cascoin: no channels list
         self.tabs.show()
         self.init_geometry()
         if self.config.GUI_QT_HIDE_ON_STARTUP and self.gui_object.tray.isVisible():
@@ -669,7 +678,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         msg = ''.join([
             _("You are in testnet mode."), ' ',
             _("Testnet coins are worthless."), '\n',
-            _("Testnet is separate from the main Bitcoin network. It is used for testing.")
+            _("Testnet is separate from the main Cascoin network. It is used for testing.")
         ])
         cb = QCheckBox(_("Don't show this again."))
         cb_checked = False
@@ -799,6 +808,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.wallet_menu.addSeparator()
 
         def add_toggle_action(tab):
+            if tab is None or getattr(tab, 'is_shown_cv', None) is None:
+                return
             is_shown = tab.is_shown_cv.get()
             tab.menu_action = self.view_menu.addAction(tab.tab_description, lambda: self.toggle_tab(tab))
             tab.menu_action.setCheckable(True)
@@ -806,7 +817,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.view_menu = menubar.addMenu(_("&View"))
         add_toggle_action(self.addresses_tab)
         add_toggle_action(self.utxo_tab)
-        add_toggle_action(self.channels_tab)
+        # Cascoin: channels tab disabled
+        # add_toggle_action(self.channels_tab)
         add_toggle_action(self.contacts_tab)
         add_toggle_action(self.console_tab)
         add_toggle_action(self.notes_tab)
@@ -872,11 +884,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
     def show_about(self):
         QMessageBox.about(self, "Electrum",
                           (_("Version")+" %s" % ELECTRUM_VERSION + "\n\n" +
-                           _("Electrum's focus is speed, with low resource usage and simplifying Bitcoin.") + " " +
+                           _("Electrum's focus is speed, with low resource usage and simplifying Cascoin.") + " " +
                            _("You do not need to perform regular backups, because your wallet can be "
                               "recovered from a secret phrase that you can memorize or write on paper.") + " " +
                            _("Startup times are instant because it operates in conjunction with high-performance "
-                              "servers that handle the most complicated parts of the Bitcoin system.") + "\n\n" +
+                              "servers that handle the most complicated parts of the Cascoin system.") + "\n\n" +
                            _("Uses icons from the Icons8 icon pack (icons8.com).")))
 
     def show_bitcoin_paper(self):
@@ -1145,7 +1157,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.address_list.update()
         self.utxo_list.update()
         self.contact_list.update()
-        self.channels_list.update_rows.emit(wallet)
+        # Cascoin: no channels list
         self.update_completions()
 
     def refresh_tabs(self, wallet=None):
@@ -1155,7 +1167,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.address_list.refresh_all()
         self.utxo_list.refresh_all()
         self.contact_list.refresh_all()
-        self.channels_list.update_rows.emit(self.wallet)
+        # Cascoin: no channels list
 
     def create_channels_tab(self):
         self.channels_list = ChannelsList(self)

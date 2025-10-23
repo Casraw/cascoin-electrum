@@ -55,8 +55,8 @@ def create_fallback_node_list(fallback_nodes_dict: dict[str, dict]) -> List[LNPe
     return fallback_nodes
 
 
-GIT_REPO_URL = "https://github.com/spesmilo/electrum"
-GIT_REPO_ISSUES_URL = "https://github.com/spesmilo/electrum/issues"
+GIT_REPO_URL = "https://github.com/casraw/cascoin-electrum"
+GIT_REPO_ISSUES_URL = "https://github.com/casraw/cascoin-electrum/issues"
 BIP39_WALLET_FORMATS = read_json('bip39_wallet_formats.json')
 
 
@@ -258,6 +258,73 @@ class BitcoinMutinynet(BitcoinTestnet):
     LN_DNS_SEEDS = []
 
 
+class CascoinMainnet(AbstractNet):
+
+    NET_NAME = "cascoin"
+    TESTNET = False
+    WIF_PREFIX = 0xBC  # 188 in decimal
+    ADDRTYPE_P2PKH = 40  # Cascoin P2PKH address prefix (pubtype)
+    ADDRTYPE_P2SH = 50   # Cascoin P2SH address prefix (p2shtype) - CORRECTED!
+    SEGWIT_HRP = "cas"
+    BOLT11_HRP = "cas"
+    GENESIS = "00000928be1f2ccc448590307e4f6e165702244b5be0f79c08e48d1fc7128c82"
+    DEFAULT_PORTS = {'t': '50001', 's': '50002'}
+    BLOCK_HEIGHT_FIRST_LIGHTNING_CHANNELS = 999999999  # Cascoin: Lightning not supported
+
+    XPRV_HEADERS = {
+        'standard':    0x0488ade4,  # xprv (same as Bitcoin)
+        'p2wpkh-p2sh': 0x049d7878,  # yprv
+        'p2wsh-p2sh':  0x0295b005,  # Yprv
+        'p2wpkh':      0x04b2430c,  # zprv
+        'p2wsh':       0x02aa7a99,  # Zprv
+    }
+    XPRV_HEADERS_INV = inv_dict(XPRV_HEADERS)
+    XPUB_HEADERS = {
+        'standard':    0x0488b21e,  # xpub (same as Bitcoin)
+        'p2wpkh-p2sh': 0x049d7cb2,  # ypub
+        'p2wsh-p2sh':  0x0295b43f,  # Ypub
+        'p2wpkh':      0x04b24746,  # zpub
+        'p2wsh':       0x02aa7ed3,  # Zpub
+    }
+    XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
+    BIP44_COIN_TYPE = 6363  # Cascoin coin type from derivation path m/44'/6363'
+    LN_REALM_BYTE = 0
+    LN_DNS_SEEDS = []
+
+
+class CascoinTestnet(AbstractNet):
+
+    NET_NAME = "cascoin-testnet"
+    TESTNET = True
+    WIF_PREFIX = 0xBC  # 188 in decimal (same as mainnet in chainparam.cpp)
+    ADDRTYPE_P2PKH = 40
+    ADDRTYPE_P2SH = 50  # Same as mainnet - CORRECTED!
+    SEGWIT_HRP = "tcas"
+    BOLT11_HRP = "tcas"
+    GENESIS = "00000928be1f2ccc448590307e4f6e165702244b5be0f79c08e48d1fc7128c82"
+    DEFAULT_PORTS = {'t': '51001', 's': '51002'}
+
+    XPRV_HEADERS = {
+        'standard':    0x04358394,  # tprv
+        'p2wpkh-p2sh': 0x044a4e28,  # uprv
+        'p2wsh-p2sh':  0x024285b5,  # Uprv
+        'p2wpkh':      0x045f18bc,  # vprv
+        'p2wsh':       0x02575048,  # Vprv
+    }
+    XPRV_HEADERS_INV = inv_dict(XPRV_HEADERS)
+    XPUB_HEADERS = {
+        'standard':    0x043587cf,  # tpub
+        'p2wpkh-p2sh': 0x044a5262,  # upub
+        'p2wsh-p2sh':  0x024289ef,  # Upub
+        'p2wpkh':      0x045f1cf6,  # vpub
+        'p2wsh':       0x02575483,  # Vpub
+    }
+    XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
+    BIP44_COIN_TYPE = 1  # Testnet coin type
+    LN_REALM_BYTE = 1
+    LN_DNS_SEEDS = []
+
+
 NETS_LIST = tuple(all_subclasses(AbstractNet))  # type: Sequence[Type[AbstractNet]]
 NETS_LIST = tuple(sorted(NETS_LIST, key=lambda x: x.NET_NAME))
 
@@ -267,4 +334,4 @@ assert len(NETS_LIST) == len(set([chain.cli_flag() for chain in NETS_LIST])), "c
 assert len(NETS_LIST) == len(set([chain.config_key() for chain in NETS_LIST])), "config_key must be unique for each concrete AbstractNet"
 
 # don't import net directly, import the module instead (so that net is singleton)
-net = BitcoinMainnet  # type: Type[AbstractNet]
+net = CascoinMainnet  # type: Type[AbstractNet]

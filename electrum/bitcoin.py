@@ -43,8 +43,8 @@ if TYPE_CHECKING:
 ################################## transactions
 
 COINBASE_MATURITY = 100
-COIN = 100000000
-TOTAL_COIN_SUPPLY_LIMIT_IN_BTC = 21000000
+COIN = 10000000  # Cascoin: 7 decimal places (not 8)
+TOTAL_COIN_SUPPLY_LIMIT_IN_BTC = 84000000  # Cascoin total supply
 
 NLOCKTIME_MIN = 0
 NLOCKTIME_BLOCKHEIGHT_MAX = 500_000_000 - 1

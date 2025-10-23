@@ -40,7 +40,7 @@ import copy
 import electrum_ecc as ecc
 from electrum_ecc.util import bip340_tagged_hash
 
-from . import bitcoin, bip32
+from . import bitcoin, bip32, constants
 from .bip32 import BIP32Node
 from .util import to_bytes, bfh, chunks, is_hex_str, parse_max_spend
 from .bitcoin import (
@@ -109,6 +109,7 @@ class Sighash(IntEnum):
     NONE = 2
     SINGLE = 3
     ANYONECANPAY = 0x80
+    FORKID = 0x40  # Cascoin: SIGHASH_FORKID (similar to Bitcoin Cash)
 
     @classmethod
     def is_valid(cls, sighash: int, *, is_taproot: bool = False) -> bool:
@@ -118,6 +119,9 @@ class Sighash(IntEnum):
         }
         if is_taproot:
             valid_flags.add(0x00)
+        # Cascoin: Allow SIGHASH_FORKID combinations (0x41, 0x42, 0x43, 0xC1, 0xC2, 0xC3)
+        if constants.net.NET_NAME == "cascoin":
+            valid_flags.update({0x41, 0x42, 0x43, 0xC1, 0xC2, 0xC3})
         return sighash in valid_flags
 
     @classmethod
@@ -327,7 +331,7 @@ class TxInput:
     def __init__(self, *,
                  prevout: TxOutpoint,
                  script_sig: bytes = None,
-                 nsequence: int = 0xffffffff - 1,
+                 nsequence: int = 0xffffffff,  # Cascoin: Use final sequence (disable RBF by default)
                  witness: bytes = None,
                  is_coinbase_output: bool = False):
         self.prevout = prevout
@@ -1108,19 +1112,23 @@ class Transaction:
                     # note: we could cache this to avoid some potential DOS vectors:
                     preimage_outputdata += sha256(txout.serialize_to_network())
                 return bytes(sighash_epoch + hash_type + preimage_txdata + preimage_inputdata + preimage_outputdata)
-            else:  # segwit (witness v0)
+            else:  # segwit (witness v0) - Cascoin: Also use this format for SIGHASH_FORKID
                 scache = sighash_cache.get_witver0_data_for_tx(self)
+                # Cascoin: ensure FORKID bit is included in nHashType inside preimage
+                if constants.net.NET_NAME == "cascoin":
+                    sighash = (sighash | Sighash.FORKID)
+                base_sighash = sighash & 0x1f  # Remove FORKID and ANYONECANPAY flags
                 if not (sighash & Sighash.ANYONECANPAY):
                     hashPrevouts = scache.hashPrevouts
                 else:
                     hashPrevouts = bytes(32)
-                if not (sighash & Sighash.ANYONECANPAY) and (sighash & 0x1f) != Sighash.SINGLE and (sighash & 0x1f) != Sighash.NONE:
+                if not (sighash & Sighash.ANYONECANPAY) and base_sighash != Sighash.SINGLE and base_sighash != Sighash.NONE:
                     hashSequence = scache.hashSequence
                 else:
                     hashSequence = bytes(32)
-                if (sighash & 0x1f) != Sighash.SINGLE and (sighash & 0x1f) != Sighash.NONE:
+                if base_sighash != Sighash.SINGLE and base_sighash != Sighash.NONE:
                     hashOutputs = scache.hashOutputs
-                elif (sighash & 0x1f) == Sighash.SINGLE and txin_index < len(outputs):
+                elif base_sighash == Sighash.SINGLE and txin_index < len(outputs):
                     # note: we could cache this to avoid some potential DOS vectors:
                     hashOutputs = sha256d(outputs[txin_index].serialize_to_network())
                 else:
@@ -1131,19 +1139,50 @@ class Transaction:
                 amount = int.to_bytes(txin.value_sats(), length=8, byteorder="little", signed=False)
                 nSequence = int.to_bytes(txin.nsequence, length=4, byteorder="little", signed=False)
                 nHashType = int.to_bytes(sighash, length=4, byteorder="little", signed=False)
+                # Cascoin: removed temporary debug logging for segwit preimage
                 preimage = nVersion + hashPrevouts + hashSequence + outpoint + scriptCode + amount + nSequence + hashOutputs + nLocktime + nHashType
                 return preimage
-        else:  # legacy sighash (pre-segwit)
-            if sighash != Sighash.ALL:
-                raise Exception(f"SIGHASH_FLAG ({sighash}) not supported! (for legacy sighash)")
-            preimage_script = txin.get_scriptcode_for_sighash()
-            txins = var_int(len(inputs)) + b"".join(
-                txin.serialize_to_network(script_sig=preimage_script if txin_index==k else b"")
-                for k, txin in enumerate(inputs))
-            txouts = var_int(len(outputs)) + b"".join(o.serialize_to_network() for o in outputs)
-            nHashType = int.to_bytes(sighash, length=4, byteorder="little", signed=False)
-            preimage = nVersion + txins + txouts + nLocktime + nHashType
-            return preimage
+        else:  # legacy sighash (pre-segwit) OR Cascoin with SIGHASH_FORKID
+            # Cascoin: Use BIP143 format for SIGHASH_FORKID even on legacy inputs
+            if constants.net.NET_NAME == "cascoin" and (sighash & Sighash.FORKID):
+                # Use BIP143-style signature hash for Cascoin FORKID (like Bitcoin Cash)
+                scache = sighash_cache.get_witver0_data_for_tx(self)
+                base_sighash = sighash & 0x1f  # Remove FORKID and ANYONECANPAY flags
+                if not (sighash & Sighash.ANYONECANPAY):
+                    hashPrevouts = scache.hashPrevouts
+                else:
+                    hashPrevouts = bytes(32)
+                if not (sighash & Sighash.ANYONECANPAY) and base_sighash != Sighash.SINGLE and base_sighash != Sighash.NONE:
+                    hashSequence = scache.hashSequence
+                else:
+                    hashSequence = bytes(32)
+                if base_sighash != Sighash.SINGLE and base_sighash != Sighash.NONE:
+                    hashOutputs = scache.hashOutputs
+                elif base_sighash == Sighash.SINGLE and txin_index < len(outputs):
+                    hashOutputs = sha256d(outputs[txin_index].serialize_to_network())
+                else:
+                    hashOutputs = bytes(32)
+                outpoint = txin.prevout.serialize_to_network()
+                preimage_script = txin.get_scriptcode_for_sighash()
+                scriptCode = var_int(len(preimage_script)) + preimage_script
+                amount = int.to_bytes(txin.value_sats(), length=8, byteorder="little", signed=False)
+                nSequence = int.to_bytes(txin.nsequence, length=4, byteorder="little", signed=False)
+                nHashType = int.to_bytes(sighash, length=4, byteorder="little", signed=False)
+                # Cascoin: removed temporary debug logging for legacy preimage
+                preimage = nVersion + hashPrevouts + hashSequence + outpoint + scriptCode + amount + nSequence + hashOutputs + nLocktime + nHashType
+                return preimage
+            else:
+                # Original legacy sighash (Bitcoin)
+                if sighash != Sighash.ALL:
+                    raise Exception(f"SIGHASH_FLAG ({sighash}) not supported! (for legacy sighash)")
+                preimage_script = txin.get_scriptcode_for_sighash()
+                txins = var_int(len(inputs)) + b"".join(
+                    txin.serialize_to_network(script_sig=preimage_script if txin_index==k else b"")
+                    for k, txin in enumerate(inputs))
+                txouts = var_int(len(outputs)) + b"".join(o.serialize_to_network() for o in outputs)
+                nHashType = int.to_bytes(sighash, length=4, byteorder="little", signed=False)
+                preimage = nVersion + txins + txouts + nLocktime + nHashType
+                return preimage
         raise Exception("should not reach this")
 
     def verify_sig_for_txin(
@@ -2460,6 +2499,7 @@ class PartialTransaction(Transaction):
                 _logger.info(f"adding signature for {pubkey.hex()}. spending utxo {txin.prevout.to_str()}")
                 sec = keypairs[pubkey]
                 sig = self.sign_txin(i, sec, sighash_cache=sighash_cache)
+                # Cascoin: removed temporary debug logging
                 self.add_signature_to_txin(txin_idx=i, signing_pubkey=pubkey, sig=sig)
 
         _logger.debug(f"tx.sign() finished. is_complete={self.is_complete()}")
@@ -2488,7 +2528,16 @@ class PartialTransaction(Transaction):
             msg_hash = sha256d(pre_hash)
             sig = privkey.ecdsa_sign(msg_hash, sigencode=ecc.ecdsa_der_sig_from_r_and_s)
             sighash = txin.sighash if txin.sighash is not None else Sighash.ALL
-        return sig + Sighash.to_sigbytes(sighash)
+            # Cascoin: Add SIGHASH_FORKID (0x40) for ALL inputs (enforced by Cascoin)
+            if constants.net.NET_NAME == "cascoin":
+                sighash = sighash | Sighash.FORKID
+                _logger.info(f"Cascoin: Signing with SIGHASH_FORKID. sighash=0x{sighash:02x}, is_segwit={txin.is_segwit()}, address={txin.address}")
+                _logger.info(f"  pre_hash: {pre_hash.hex()[:64]}...")
+                _logger.info(f"  msg_hash: {msg_hash.hex()}")
+                _logger.info(f"  sig_len: {len(sig)}, final_sighash_byte: 0x{sighash:02x}")
+        final_sig = sig + Sighash.to_sigbytes(sighash)
+        # Cascoin: removed temporary debug logging
+        return final_sig
 
     def is_complete(self) -> bool:
         return all([txin.is_complete() for txin in self.inputs()])

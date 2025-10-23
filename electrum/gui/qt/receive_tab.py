@@ -69,20 +69,19 @@ class ReceiveTab(QWidget, MessageBoxMixin, Logger):
 
         self.clear_invoice_button = QPushButton(_('Clear'))
         self.clear_invoice_button.clicked.connect(self.do_clear)
-        text = _('Onchain') if self.wallet.has_lightning() else _('Request')
-        self.create_onchain_invoice_button = QPushButton(text)
+        # Cascoin: Lightning disabled; always on-chain requests
+        self.create_onchain_invoice_button = QPushButton(_('Request'))
         self.create_onchain_invoice_button.setIcon(read_QIcon("bitcoin.png"))
         self.create_onchain_invoice_button.clicked.connect(lambda: self.create_invoice(False))
+        # Cascoin: remove Lightning button
         self.create_lightning_invoice_button = QPushButton(_('Lightning'))
-        self.create_lightning_invoice_button.setIcon(read_QIcon("lightning.png"))
-        self.create_lightning_invoice_button.clicked.connect(lambda: self.create_invoice(True))
-        self.create_lightning_invoice_button.setVisible(self.wallet.has_lightning())
+        self.create_lightning_invoice_button.setVisible(False)
 
         self.receive_buttons = buttons = QHBoxLayout()
         buttons.addWidget(self.clear_invoice_button)
         buttons.addStretch(1)
         buttons.addWidget(self.create_onchain_invoice_button)
-        buttons.addWidget(self.create_lightning_invoice_button)
+        # Cascoin: no Lightning button
         grid.addLayout(buttons, 4, 1, 1, -1)
 
         self.receive_e = QTextEdit()
@@ -275,10 +274,11 @@ class ReceiveTab(QWidget, MessageBoxMixin, Logger):
         self.update_receive_widgets()
 
     def get_tab_data(self):
-        if self.URI:
-            out = self.URI, self.URI, self.URI_help, _('Bitcoin URI')
-        elif self.addr:
-            out = self.addr, self.addr, self.address_help, _('Address')
+        # Show plain address first (easier to copy), URI is still in QR code
+        if self.addr:
+            out = self.addr, self.URI or self.addr, self.address_help, _('Address')
+        elif self.URI:
+            out = self.URI, self.URI, self.URI_help, _('Cascoin URI')
         else:
             # encode lightning invoices as uppercase so QR encoding can use
             # alphanumeric mode; resulting in smaller QR codes

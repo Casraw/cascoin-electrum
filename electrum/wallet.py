@@ -45,7 +45,7 @@ from dataclasses import dataclass
 import electrum_ecc as ecc
 from aiorpcx import ignore_after, run_in_thread
 
-from . import util, keystore, transaction, bitcoin, coinchooser, bip32, descriptor
+from . import util, keystore, transaction, bitcoin, coinchooser, bip32, descriptor, constants
 from .i18n import _
 from .bip32 import BIP32Node, convert_bip32_intpath_to_strpath, convert_bip32_strpath_to_intpath
 from .logging import get_logger, Logger
@@ -193,7 +193,9 @@ async def sweep(
     if locktime is None:
         locktime = get_locktime_for_new_transaction(network)
     tx = PartialTransaction.from_io(inputs, outputs, locktime=locktime, version=tx_version)
-    tx.set_rbf(True)
+    # Cascoin: Disable RBF
+    if constants.net.NET_NAME != "cascoin":
+        tx.set_rbf(True)
     tx.sign(keypairs)
     return tx
 
@@ -203,6 +205,9 @@ def get_locktime_for_new_transaction(
     *,
     include_random_component: bool = True,
 ) -> int:
+    # Cascoin: Always use locktime 0 for compatibility
+    if constants.net.NET_NAME == "cascoin":
+        return 0
     # if no network or not up to date, just set locktime to zero
     if not network:
         return 0
@@ -521,6 +526,9 @@ class Abstract_Wallet(ABC, Logger, EventListener):
 
     def can_have_lightning(self) -> bool:
         """ whether this wallet can create new channels """
+        # Cascoin: Lightning Network not supported
+        if constants.net.NET_NAME == "cascoin":
+            return False
         # we want static_remotekey to be a wallet address
         if not self.txin_type == 'p2wpkh':
             return False
@@ -1964,7 +1972,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
             fee_policy: FeePolicy,
             change_addr: str = None,
             is_sweep: bool = False,  # used by Wallet_2fa subclass
-            rbf: bool = True,
+            rbf: bool = False if constants.net.NET_NAME == "cascoin" else True,  # Cascoin: Disable RBF
             BIP69_sort: Optional[bool] = True,
             base_tx: Optional[Transaction] = None,
             send_change_to_lightning: bool = False,
@@ -2002,7 +2010,11 @@ class Abstract_Wallet(ABC, Logger, EventListener):
 
         for txin in coins:
             self.add_input_info(txin)
-            nSequence = 0xffffffff - (2 if rbf else 1)
+            # Cascoin: Always use final sequence (0xffffffff) for compatibility
+            if constants.net.NET_NAME == "cascoin":
+                nSequence = 0xffffffff
+            else:
+                nSequence = 0xffffffff - (2 if rbf else 1)
             txin.nsequence = nSequence
 
         fee_estimator = partial(fee_policy.estimate_fee, network=self.network)
