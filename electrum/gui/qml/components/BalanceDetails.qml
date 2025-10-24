@@ -62,8 +62,6 @@ Pane {
                             var p = Daemon.currentWallet.getBalancesForPiechart()
                             total = p['total']
                             piechart.slices = [
-                                { v: p['lightning']/total,
-                                    color: constants.colorPiechartLightning, text: qsTr('Lightning') },
                                 { v: p['confirmed']/total,
                                     color: constants.colorPiechartOnchain, text: qsTr('On-chain') },
                                 { v: p['frozen']/total,
@@ -72,8 +70,6 @@ Pane {
                                     color: constants.colorPiechartUnconfirmed, text: qsTr('Unconfirmed') },
                                 { v: p['unmatured']/total,
                                     color: constants.colorPiechartUnmatured, text: qsTr('Unmatured') },
-                                { v: p['f_lightning']/total,
-                                    color: constants.colorPiechartLightningFrozen, text: qsTr('Frozen Lightning') },
                             ]
                         }
                     }
@@ -99,41 +95,12 @@ Pane {
                             amount: Daemon.currentWallet.totalBalance
                         }
 
-                        RowLayout {
-                            visible: Daemon.currentWallet.isLightning
-                            Rectangle {
-                                Layout.preferredWidth: constants.iconSizeXSmall
-                                Layout.preferredHeight: constants.iconSizeXSmall
-                                color: constants.colorPiechartLightning
-                            }
-                            Label {
-                                text: qsTr('Lightning')
-                            }
-                        }
-                        FormattedAmount {
-                            visible: Daemon.currentWallet.isLightning
-                            amount: Daemon.currentWallet.lightningBalance
-                        }
+                        // Lightning balance hidden
+
+                        // Lightning frozen hidden
 
                         RowLayout {
-                            visible: Daemon.currentWallet.isLightning && !Daemon.currentWallet.lightningBalanceFrozen.isEmpty
-                            Rectangle {
-                                Layout.leftMargin: constants.paddingLarge
-                                Layout.preferredWidth: constants.iconSizeXSmall
-                                Layout.preferredHeight: constants.iconSizeXSmall
-                                color: constants.colorPiechartLightningFrozen
-                            }
-                            Label {
-                                text: qsTr('Frozen')
-                            }
-                        }
-                        FormattedAmount {
-                            visible: Daemon.currentWallet.isLightning && !Daemon.currentWallet.lightningBalanceFrozen.isEmpty
-                            amount: Daemon.currentWallet.lightningBalanceFrozen
-                        }
-
-                        RowLayout {
-                            visible: Daemon.currentWallet.isLightning || !Daemon.currentWallet.frozenBalance.isEmpty
+                            visible: !Daemon.currentWallet.frozenBalance.isEmpty
                             Rectangle {
                                 Layout.preferredWidth: constants.iconSizeXSmall
                                 Layout.preferredHeight: constants.iconSizeXSmall
@@ -144,7 +111,7 @@ Pane {
                             }
                         }
                         FormattedAmount {
-                            visible: Daemon.currentWallet.isLightning || !Daemon.currentWallet.frozenBalance.isEmpty
+                            visible: !Daemon.currentWallet.frozenBalance.isEmpty
                             amount: Daemon.currentWallet.confirmedBalance
                         }
 
@@ -182,55 +149,14 @@ Pane {
                         }
                     }
 
-                    Heading {
-                        text: qsTr('Lightning Liquidity')
-                        visible: Daemon.currentWallet.isLightning
-                    }
-                    GridLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        visible: Daemon.currentWallet && Daemon.currentWallet.isLightning
-                        columns: 2
-                        Label {
-                            text: qsTr('Can send')
-                        }
-                        FormattedAmount {
-                            amount: Daemon.currentWallet.lightningCanSend
-                        }
-                        Label {
-                            text: qsTr('Can receive')
-                        }
-                        FormattedAmount {
-                            amount: Daemon.currentWallet.lightningCanReceive
-                        }
-                    }
+                    // Lightning Liquidity section hidden
                 }
             }
         }
 
         ButtonContainer {
             Layout.fillWidth: true
-            FlatButton {
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                text: qsTr('Lightning swap');
-                visible: Daemon.currentWallet.isLightning
-                enabled: Daemon.currentWallet.lightningCanSend.satsInt > 0 || Daemon.currentWallet.lightningCanReceive.satInt > 0
-                icon.source: Qt.resolvedUrl('../../icons/update.png')
-                onClicked: app.startSwap()
-            }
-
-            FlatButton {
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                text: qsTr('Open Channel')
-                visible: Daemon.currentWallet.isLightning
-                enabled: Daemon.currentWallet.confirmedBalance.satsInt > 0
-                onClicked: {
-                    var dialog = openChannelDialog.createObject(rootItem)
-                    dialog.open()
-                }
-                icon.source: '../../icons/lightning.png'
-            }
+            // Lightning buttons hidden
 
         }
 

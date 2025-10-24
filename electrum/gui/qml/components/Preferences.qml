@@ -15,7 +15,7 @@ Pane {
 
     padding: 0
 
-    property var _baseunits: ['BTC','mBTC','bits','sat']
+    property var _baseunits: ['CAS','mCAS','bits','sat']
 
     ColumnLayout {
         anchors.fill: parent
@@ -89,7 +89,7 @@ Pane {
                         }
                         Label {
                             Layout.fillWidth: true
-                            text: qsTr('Add thousands separators to bitcoin amounts')
+                            text: qsTr('Add thousands separators to Cascoin amounts')
                             wrapMode: Text.Wrap
                         }
                     }
@@ -306,115 +306,17 @@ Pane {
                         }
                     }
 
-                    PrefsHeading {
-                        Layout.columnSpan: 2
-                        text: qsTr('Lightning')
-                    }
+                    // Lightning heading hidden
 
-                    Label {
-                        Layout.fillWidth: true
-                        text: Config.shortDescFor('LIGHTNING_PAYMENT_FEE_MAX_MILLIONTHS')
-                        wrapMode: Text.Wrap
-                    }
+                    // Lightning fees description hidden
 
-                    Label {
-                        Layout.fillWidth: true
-                        text: qsTr('<b>%1%</b> of payment').arg(maxfeeslider._fees[maxfeeslider.value]/10000)
-                        wrapMode: Text.Wrap
-                    }
+                    // Lightning fees value hidden
 
-                    Slider {
-                        id: maxfeeslider
-                        Layout.columnSpan: 2
-                        Layout.fillWidth: true
-                        Layout.leftMargin: constants.paddingXLarge
-                        Layout.rightMargin: constants.paddingXLarge
+                    // Lightning max fee slider hidden
 
-                        property var _fees: [500, 1000, 3000, 5000, 10000, 20000, 30000, 50000]
+                    // Lightning trampoline routing setting hidden
 
-                        snapMode: Slider.SnapOnRelease
-                        stepSize: 1
-                        from: 0
-                        to: _fees.length - 1
-
-                        onValueChanged: {
-                            if (activeFocus)
-                                Config.lightningPaymentFeeMaxMillionths = _fees[value]
-                        }
-
-                        Component.onCompleted: {
-                            value = _fees.indexOf(Config.lightningPaymentFeeMaxMillionths)
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.columnSpan: 2
-                        Layout.fillWidth: true
-                        spacing: 0
-                        Switch {
-                            id: useTrampolineRouting
-                            onCheckedChanged: {
-                                if (activeFocus) {
-                                    if (!checked) {
-                                        var dialog = app.messageDialog.createObject(app, {
-                                            title: qsTr('Are you sure?'),
-                                            text: qsTr('Electrum will have to download the Lightning Network graph, which is not recommended on mobile.'),
-                                            yesno: true
-                                        })
-                                        dialog.accepted.connect(function() {
-                                            Config.useGossip = true
-                                        })
-                                        dialog.rejected.connect(function() {
-                                            checked = true // revert
-                                        })
-                                        dialog.open()
-                                    } else {
-                                        Config.useGossip = !checked
-                                    }
-                                }
-
-                            }
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTr('Trampoline routing')
-                            wrapMode: Text.Wrap
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.columnSpan: 2
-                        Layout.fillWidth: true
-                        spacing: 0
-                        Switch {
-                            id: useRecoverableChannels
-                            onCheckedChanged: {
-                                if (activeFocus) {
-                                    if (!checked) {
-                                        var dialog = app.messageDialog.createObject(app, {
-                                            title: qsTr('Are you sure?'),
-                                            text: qsTr('This option allows you to recover your lightning funds if you lose your device, or if you uninstall this app while lightning channels are active. Do not disable it unless you know how to recover channels from backups.'),
-                                            yesno: true
-                                        })
-                                        dialog.accepted.connect(function() {
-                                            Config.useRecoverableChannels = false
-                                        })
-                                        dialog.rejected.connect(function() {
-                                            checked = true // revert
-                                        })
-                                        dialog.open()
-                                    } else {
-                                        Config.useRecoverableChannels = checked
-                                    }
-                                }
-                            }
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTr('Create recoverable channels')
-                            wrapMode: Text.Wrap
-                        }
-                    }
+                    // Lightning recoverable channels setting hidden
 
                     PrefsHeading {
                         Layout.columnSpan: 2

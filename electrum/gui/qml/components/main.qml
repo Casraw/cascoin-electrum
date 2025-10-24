@@ -235,6 +235,7 @@ ApplicationWindow
 
                         LightningNetworkStatusIndicator {
                             id: lnnsi
+                            visible: false
                         }
                         OnchainNetworkStatusIndicator { }
                     }

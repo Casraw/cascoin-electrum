@@ -107,14 +107,7 @@ Pane {
                             font.bold: true
                             iconSource: '../../../icons/seed.png'
                         }
-                        Tag {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: qsTr('Lightning')
-                            visible: Daemon.currentWallet.isLightning
-                            font.pixelSize: constants.fontSizeSmall
-                            font.bold: true
-                            iconSource: '../../../icons/lightning.png'
-                        }
+                        // Lightning tag hidden
                         Tag {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr('Seed')
@@ -197,41 +190,9 @@ Pane {
                             }
                         }
 
-                        Label {
-                            Layout.columnSpan: 2
-                            Layout.topMargin: constants.paddingSmall
-                            visible: Daemon.currentWallet.isLightning
-                            text: qsTr('Lightning Node ID')
-                            color: Material.accentColor
-                        }
+                        // Lightning Node ID label hidden
 
-                        TextHighlightPane {
-                            Layout.columnSpan: 2
-                            Layout.fillWidth: true
-                            visible: Daemon.currentWallet.isLightning
-
-                            RowLayout {
-                                width: parent.width
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: Daemon.currentWallet.lightningNodePubkey
-                                    wrapMode: Text.Wrap
-                                    font.family: FixedFont
-                                    font.pixelSize: constants.fontSizeMedium
-                                }
-                                ToolButton {
-                                    icon.source: '../../icons/share.png'
-                                    icon.color: 'transparent'
-                                    onClicked: {
-                                        var dialog = app.genericShareDialog.createObject(rootItem, {
-                                            title: qsTr('Lightning Node ID'),
-                                            text: Daemon.currentWallet.lightningNodePubkey
-                                        })
-                                        dialog.open()
-                                    }
-                                }
-                            }
-                        }
+                        // Lightning Node ID value hidden
 
                         Label {
                             visible: _is2fa
@@ -450,14 +411,7 @@ Pane {
                 icon.source: '../../icons/add.png'
                 onClicked: rootItem.importAddressesKeys()
             }
-            FlatButton {
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                text: qsTr('Enable Lightning')
-                onClicked: rootItem.enableLightning()
-                visible: Daemon.currentWallet && Daemon.currentWallet.canHaveLightning && !Daemon.currentWallet.isLightning
-                icon.source: '../../icons/lightning.png'
-            }
+            // Enable Lightning button hidden
         }
     }
 

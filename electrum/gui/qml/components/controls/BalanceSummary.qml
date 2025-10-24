@@ -72,7 +72,7 @@ Item {
 
             RowLayout {
                 Layout.alignment: Qt.AlignRight
-                visible: Daemon.currentWallet.isLightning
+                visible: false
                 Image {
                     Layout.preferredWidth: constants.iconSizeSmall
                     Layout.preferredHeight: constants.iconSizeSmall
@@ -85,13 +85,13 @@ Item {
                 }
             }
             Label {
-                visible: Daemon.currentWallet.isLightning
+                visible: false
                 Layout.alignment: Qt.AlignRight
                 text: formattedLightningBalance
                 font.family: FixedFont
             }
             Label {
-                visible: Daemon.currentWallet.isLightning
+                visible: false
                 font.pixelSize: constants.fontSizeSmall
                 color: Material.accentColor
                 text: Config.baseUnit

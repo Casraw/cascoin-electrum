@@ -93,7 +93,7 @@ base_units = {'CAS':7, 'mCAS':4, 'bits':1, 'sat':0}
 base_units_inverse = inv_dict(base_units)
 base_units_list = ['CAS', 'mCAS', 'bits', 'sat']  # list(dict) does not guarantee order
 
-DECIMAL_POINT_DEFAULT = 4  # mCAS
+DECIMAL_POINT_DEFAULT = 7  # CAS
 
 
 class UnknownBaseUnit(Exception): pass
